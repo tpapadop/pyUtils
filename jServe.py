@@ -201,7 +201,7 @@ class jServe(threading.Thread):
         Opens connection, and creates Thread object to handle requests
 
         '''
-        print('Waiting for connections on port %s' % (self.port),file = self.logfile)
+        print('Waiting for connections on: %s port: %s' % (self.host,self.port),file = self.logfile)
         self.logfile.flush()
         # We need to run a loop and create a new thread for each connection
         while True:
