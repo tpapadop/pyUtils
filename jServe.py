@@ -8,7 +8,8 @@ from dicttoxml import dicttoxml
 # multiple connections handled via threads
 
 PORT = 9699 # the default port number to run our server on
-HOST = socket.gethostname() # the default hostname to run on
+#HOST = socket.gethostname() # the default hostname to run on
+HOST='0.0.0.0'
 
 # CERTFILE = '/home/TPapad01/work/etc/cert.pem'
 CERTFILE = None
@@ -129,7 +130,7 @@ class jServe(threading.Thread):
 
         Other:
             callback registry = {Method: [ {path : callback}, ]}
-            
+
         Note:
             user defined functions need to increment counter inside callback set default_callback()
 
