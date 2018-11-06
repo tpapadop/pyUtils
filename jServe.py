@@ -9,7 +9,7 @@ from dicttoxml import dicttoxml
 
 PORT = 9699 # the default port number to run our server on
 #HOST = socket.gethostname() # the default hostname to run on
-HOST='0.0.0.0'
+HOST=''
 
 # CERTFILE = '/home/TPapad01/work/etc/cert.pem'
 CERTFILE = None
