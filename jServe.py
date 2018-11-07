@@ -53,7 +53,7 @@ class jServe(threading.Thread):
         self.server.close()
         sys.exit(signal)
 
-    def __init__(self, callbacks = {}, port=PORT , host=HOST, certfile = CERTFILE):
+    def __init__(self, callbacks = {}, port=PORT , host=HOST, certfile = CERTFILE, logfile = LOGFILE):
         import signal
         signal.signal(signal.SIGINT,self.sig_exit)
         threading.Thread.__init__(self)
@@ -67,7 +67,14 @@ class jServe(threading.Thread):
             self.ssl = False
         else:
             self.ssl = True
-        self.logfile = open(LOGFILE, "a")
+        if logfile.upper() == "STDOUT":
+            self.logfile = sys.stdout
+        else:
+            if logfile.upper() == "STDERR":
+                self.logfile = sys.stderr
+            else:
+                self.logfile = open(LOGFILE, "a")
+
         print ("\n",file = self.logfile)
         print (datetime.now().strftime("jServe object initialized: %A %B %d %Y %I:%M %p %Z"),file = self.logfile)
         self.logfile.flush()
@@ -135,7 +142,7 @@ class jServe(threading.Thread):
 
         '''
 
-        print ("Call back add: ",method,path,cfunc, file = self.logfile)
+        print ("Call back add: ",method,path," callback: ",cfunc.__name__, file = self.logfile)
         self.logfile.flush()
         if method not in self.callregistry:
             self.callregistry[method] = []
@@ -332,7 +339,7 @@ if __name__ == '__main__':
         # print ("\n\t\t===>>> ",jdata)
         return (path, jdata, status, counter + 1)
 
-    myjs = jServe()
+    myjs = jServe(logfile="stderr")
     # myjs.output = 'xml'
     myjs.add_callback("GET","/tes.*",my_call)
     myjs.add_callback("POST","/te.*",my_call)
