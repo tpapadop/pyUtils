@@ -8,8 +8,7 @@ from dicttoxml import dicttoxml
 # multiple connections handled via threads
 
 PORT = 9699 # the default port number to run our server on
-#HOST = socket.gethostname() # the default hostname to run on
-HOST=''
+HOST = socket.gethostname() #use default hostname to run on
 
 # CERTFILE = '/home/TPapad01/work/etc/cert.pem'
 CERTFILE = None
