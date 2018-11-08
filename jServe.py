@@ -190,6 +190,7 @@ class jServe(threading.Thread):
         except Exception as err:
             data=""
 
+        print ("RAW DATA:\n",data,"\n",file = self.logfile)
         url = urlparse(data)
         method, wpath, jdata = self.process_url (url)
         m1, rjdata, rcode, m2 = self.callback (method, wpath, jdata)
@@ -295,36 +296,60 @@ class jServe(threading.Thread):
                 retstr =  retstr + " " + j
             return retstr
 
+        def retDefined(p1,p2,p3):
+            print (p1,p2,p3)
+            pr = p1
+            if len(pr) == 0:
+                pr = p2
+            if len(pr) == 0:
+                pr = p3
+            return pr
+
+        print ("URL = ", args, file = self.logfile)
         urlst = args.path.decode('ascii').replace("["," [ ").replace("]"," ] ").replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
         method = urlst[0]
         wpath = urlst[1]
         print ("method = ", method, " wpath = ", wpath, file = self.logfile)
         self.logfile.flush()
-        if method == "GET":
-            if args.query:
-                params = args.query.decode('ascii').split()[0].replace("="," : ").replace("&"," , ")
-                p = params.split(',')
-                params = ''
-                for i in p:
-                    if ':' not in i:
-                        i = i + ' : true '
-                    params = params + i + ' , '
-                params = params[:-3]
-                # print (params, file = self.logfile)
-                params = params.split()
-
-            else:
-                params = []
-        else:
-            if args.query:
-                ags = args.query
-            else:
-                ags = args.path
+        qparams = []
+        if args.query:
+            qparams = args.query.decode('ascii').split()[0].replace("="," : ").replace("&"," , ")
+            p = qparams.split(',')
+            qparams = ''
+            for i in p:
+                if ':' not in i:
+                    i = i + ' : true '
+                qparams = qparams + i + ' , '
+            qparams = qparams[:-3]
+            # print (params, file = self.logfile)
+            qparams = qparams.split()
+        prparams = []
+        if args.params:
+            if "form-data;" in args.params.decode('ascii'):
+                try:
+                    urlst = re.sub(' +',' ',args.params.decode('ascii').replace("\r"," ").replace("\n"," ")[1:])
+                    urlst = re.sub('^.*form data; ','form data; ',urlst)
+                    urlst = urlst.split("form-data; ")
+                except:
+                    pass
+                print (urlst)
+                for i in range(0,len(urlst)):
+                    urlst[i] = re.sub('\-\-\-.*','',urlst[i]).strip().replace('name="','').replace('"',' :')
+                prparams = ' , '.join(urlst).split()
+                print (prparams)
+        ptparams = []
+        if args.path:
             try:
-                urlst = ags.decode('ascii').replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
-                params = urlst[urlst.index("{")+1:urlst.index("}",-1)]
+                urlst = args.path.decode('ascii').replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
+                ptparams = urlst[urlst.index("{")+1:urlst.index("}",-1)]
             except:
-                params = []
+                pass
+
+        if method in ["GET","DELETE"]:
+            params = retDefined ( qparams, ptparams, prparams)
+        if method in ["POST","PUT"]:
+            params = retDefined (ptparams, prparams, qparams )
+
         jstr = "{ " + join_escaped(params) + " }"
         print (jstr,file = self.logfile)
         self.logfile.flush()
