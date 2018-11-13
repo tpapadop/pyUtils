@@ -294,6 +294,7 @@ class jServe(threading.Thread):
                 else:
                     j = sep + k + sep
                 retstr =  retstr + " " + j
+            retstr = re.sub('%20',' ',retstr)
             return retstr
 
         def retDefined(p1,p2,p3):
@@ -306,7 +307,7 @@ class jServe(threading.Thread):
             return pr
 
         print ("URL = ", args, file = self.logfile)
-        urlst = args.path.decode('ascii').replace("["," [ ").replace("]"," ] ").replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
+        urlst = args.path.decode('ascii').strip().replace("["," [ ").replace("]"," ] ").replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
         method = urlst[0]
         wpath = urlst[1]
         print ("method = ", method, " wpath = ", wpath, file = self.logfile)
@@ -326,24 +327,40 @@ class jServe(threading.Thread):
         prparams = []
         if args.params:
             if "form-data;" in args.params.decode('ascii'):
-                try:
-                    urlst = re.sub(' +',' ',args.params.decode('ascii').replace("\r"," ").replace("\n"," ")[1:])
-                    urlst = re.sub('^.*form data; ','form data; ',urlst)
-                    urlst = urlst.split("form-data; ")
-                except:
-                    pass
+                urlst = re.sub(' +',' ',args.params.decode('ascii').replace("\r"," ").replace("\n"," ")[1:])
+                urlst = urlst.split("form-data; ")
+                for i in urlst:
+                    if 'name=' not in i:
+                        urlst.remove(i)
                 print (urlst)
                 for i in range(0,len(urlst)):
-                    urlst[i] = re.sub('\-\-\-.*','',urlst[i]).strip().replace('name="','').replace('"',' :')
+                    urlst[i] = re.sub('\-\-\-.*','',urlst[i]).strip().replace('name="','').replace('"',':')
+                    u = urlst[i].split(":")
+                    print (u)
+                    u[1] = re.sub(' ','%20',u[1].strip())
+                    urlst[i] = ' : '.join(u)
+                    print (u)
                 prparams = ' , '.join(urlst).split()
                 print (prparams)
         ptparams = []
         if args.path:
-            try:
-                urlst = args.path.decode('ascii').replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
-                ptparams = urlst[urlst.index("{")+1:urlst.index("}",-1)]
-            except:
-                pass
+            #try:
+            print (args.path)
+            #urlst = args.path.decode('ascii').replace("{"," { ").replace("}"," } ").replace(":"," : ").replace(","," , ").split()
+            urlst = re.sub("^.*?{","",args.path.decode('ascii'))
+            urlst = re.sub('}$','',urlst).replace('",','" ,"')
+            u1 = urlst.split(" , ")
+            for i in range(0,len(u1)):
+                u2 = u1[i].split(":")
+                u2[1] = re.sub(" ","%20",u2[1])
+                u1[i] = ':'.join(u2)
+            urlst = ','.join(u1)
+            print (urlst)
+            #ptparams = urlst[urlst.index("{")+1:urlst.index("}",-1)]
+            ptparams = urlst.split(',')
+            print (ptparams)
+            #except:
+            #   pass
 
         if method in ["GET","DELETE"]:
             params = retDefined ( qparams, ptparams, prparams)
