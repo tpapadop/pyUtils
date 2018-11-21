@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import socket, ssl, sys, threading, re, json
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote_plus
 from datetime import datetime
 from dicttoxml import dicttoxml
 
@@ -191,8 +191,7 @@ class jServe(threading.Thread):
             data=""
 
         print ("RAW DATA:\n",data,"\n",file = self.logfile)
-        url = urlparse(data)
-        method, wpath, jdata = self.process_url (url)
+        method, wpath, jdata = self.process_url (data.decode('ascii'))
         m1, rjdata, rcode, m2 = self.callback (method, wpath, jdata)
         print ("%s:%s => %s %s %s" % ( addr[0],str(addr[1]),method, wpath, json.dumps(jdata)),file = self.logfile)
         self.logfile.flush()
@@ -263,8 +262,49 @@ class jServe(threading.Thread):
         self.logfile.flush()
         return resp
 
+    def __process_path(self,data):
+        try:
+            pstr = re.search('.*({.*}).*',data).group(1)
+        except:
+            return "{}"
+        print ("PATH PARAMS = ",pstr, file = self.logfile)
+        return pstr
 
-    def process_url (self,args):
+    def __process_query(self,data):
+        # qparams = args.query.decode('ascii').split()[0].replace("="," : ").replace("&"," , ")
+        qry = data.split()[1]
+        if '?' in qry:
+            qry = qry.split('?')[1]
+        if '&' in qry:
+            qparams = qry.split()[0].split('&')
+            qstr = "{"
+            sep = ""
+            for i in qparams:
+                p = i.split("=")
+                qstr = qstr + sep + '"' + p[0] + '" : '
+                if len(p) > 1:
+                    qstr = qstr + '"' + unquote_plus(p[1]) + '"'
+                sep = ", "
+            qstr = qstr + "}"
+        else:
+            qstr = "{}"
+        print ("GET PARAMS = ",qstr, file = self.logfile)
+        return qstr
+
+
+    def process_url (self,data):
+        #URL = data.decode('ascii')
+        method = data.split()[0]
+        wpath = data.split()[1]
+        if '&' in wpath:
+            wpath = wpath.split('&')[0]
+        jstr = {}
+        jstr.update(json.loads(self.__process_path(data)))
+        jstr.update(json.loads(self.__process_query(data)))
+        print  (method,wpath, jstr, file = self.logfile)
+        return (method,wpath, jstr)
+
+    def process_url_old (self,args):
         '''
         Break up URL string recieved in method, path, json
 
