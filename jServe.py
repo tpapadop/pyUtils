@@ -292,6 +292,27 @@ class jServe(threading.Thread):
         return qstr
 
 
+
+    def __process_params(self,data):
+        print ("DATA = ",data)
+        if "form-data;" in data:
+            data = data.replace("\r\n"," ").replace('\n','\\n')
+#            data = re.search('^.*(form-data\;.*$)',re.sub(' +',' ',data.replace("\r"," ").replace("\n"," ")),re.MULTILINE).group(1)
+            urlst = []
+            for u in data[re.search ('name=',data).start():].split('name='):
+                if u:
+                    u = u[:re.search('\-\-\-',u).start()]
+                    u = u[1:]
+                    m = re.search('"',u).start()
+                    p1 = unquote_plus(u[:m].strip())
+                    p2 = unquote_plus(u[m+1:].strip())
+                    urlst.append('"'+p1+'" : "' + p2 + '"')
+            pstr = "{" + ' , '.join(urlst) + "}"
+            print ("FORM DATA = ", pstr)
+            return pstr
+        else:
+            return '{}'
+
     def process_url (self,data):
         #URL = data.decode('ascii')
         method = data.split()[0]
@@ -301,6 +322,7 @@ class jServe(threading.Thread):
         jstr = {}
         jstr.update(json.loads(self.__process_path(data)))
         jstr.update(json.loads(self.__process_query(data)))
+        jstr.update(json.loads(self.__process_params(data)))
         print  (method,wpath, jstr, file = self.logfile)
         return (method,wpath, jstr)
 
