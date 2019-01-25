@@ -1,0 +1,545 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>jServe &mdash; jServe 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="jServe 1 documentation" href="../index.html"/>
+        <link rel="up" title="Module code" href="index.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> jServe
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../rst/modules.html">src</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">jServe</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>jServe</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for jServe</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/python3</span>
+<span class="kn">import</span> <span class="nn">socket</span><span class="o">,</span> <span class="nn">ssl</span><span class="o">,</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">threading</span><span class="o">,</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlparse</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+
+<span class="c1"># Single Serve Socket Server, recieve command and return result closing client socket</span>
+<span class="c1"># multiple connections handled via threads</span>
+
+<span class="n">PORT</span> <span class="o">=</span> <span class="mi">9699</span> <span class="c1"># the default port number to run our server on</span>
+<span class="n">HOST</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">()</span> <span class="c1"># the default hostname to run on</span>
+
+<span class="c1"># CERTFILE = &#39;/home/TPapad01/work/etc/cert.pem&#39;</span>
+<span class="n">CERTFILE</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">LOGFILE</span> <span class="o">=</span> <span class="s1">&#39;/var/log/jServe.log&#39;</span>
+
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.0.1&quot;</span>
+
+
+<div class="viewcode-block" id="jServe"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe">[docs]</a><span class="k">class</span> <span class="nc">jServe</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Process a json request from client, route to callback function, return json to client</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            callbacks (dict): Dictionary to use as callback registry *see add_callback()*</span>
+<span class="sd">            port(int): Port number to use</span>
+<span class="sd">            host(str): Hostname for server</span>
+<span class="sd">            certfile(str): File to use for SSL *(if * **None** *SSL will not be used)*</span>
+
+<span class="sd">        Attributes:</span>
+<span class="sd">            output = &#39;json | xml&#39; : default is json, type of output to return</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+
+<div class="viewcode-block" id="jServe.sig_exit"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.sig_exit">[docs]</a>    <span class="k">def</span> <span class="nf">sig_exit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">signal</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Receive signal to exit from OS</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            signal (signal): signal received</span>
+<span class="sd">            fname (file): File name</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Exits program</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;jServ exit: received signal&quot;</span><span class="p">,</span><span class="n">signal</span><span class="p">,</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callbacks</span> <span class="o">=</span> <span class="p">{},</span> <span class="n">port</span><span class="o">=</span><span class="n">PORT</span> <span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="n">HOST</span><span class="p">,</span> <span class="n">certfile</span> <span class="o">=</span> <span class="n">CERTFILE</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">signal</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">sig_exit</span><span class="p">)</span>
+        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="s1">&#39;json&#39;</span>  <span class="c1"># &#39;xml&#39; is also supported</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">certfile</span> <span class="o">=</span> <span class="n">certfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callregistry</span> <span class="o">=</span> <span class="n">callbacks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">server</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">certfile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ssl</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ssl</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">LOGFILE</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;jServe object initialized: %A %B </span><span class="si">%d</span><span class="s2"> %Y %I:%M %p %Z&quot;</span><span class="p">),</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="jServe.start"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span> <span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        start() : will start the server, will not execute any other commands afterwards</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">bind</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;jServe started: %A %B </span><span class="si">%d</span><span class="s2"> %Y %I:%M %p %Z&quot;</span><span class="p">),</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Bind failed </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">error</span><span class="p">),</span> <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssl</span><span class="p">:</span>
+            <span class="n">logger</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">certfile</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ssl</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">wrap_socket</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="p">,</span> <span class="n">server_side</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">certfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">certfile</span><span class="p">,</span> <span class="n">keyfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">certfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="jServe.default_callback"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.default_callback">[docs]</a>    <span class="k">def</span> <span class="nf">default_callback</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">jdata</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">counter</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Call back to execute if one is not foundself.</span>
+
+<span class="sd">        **Model callbacks on this function, counter should be incremented**</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): path in calling URL</span>
+<span class="sd">            jdata (json): jquery data to process (required)</span>
+<span class="sd">            status (int): last status</span>
+<span class="sd">            counter (int): How many times method path did a call back</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            path(str),json(json), status(int), counter(int): Returns tupple with path, json object, status, and counter</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Callback not registered&quot;</span><span class="p">,</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">{},</span> <span class="mi">404</span><span class="p">,</span> <span class="n">counter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="jServe.add_callback"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.add_callback">[docs]</a>    <span class="k">def</span> <span class="nf">add_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">method</span><span class="p">,</span><span class="n">path</span><span class="p">,</span><span class="n">cfunc</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Register callback method, function should accept json object as data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method (str): Method in URL POST, GET, PUT, etc..</span>
+<span class="sd">            path (re): Path in URL after host &#39;/.*&#39;, regular expression</span>
+<span class="sd">            cfunc(function):  call back function refernce pointer (see default_callback() for details)</span>
+
+
+<span class="sd">        Note user defined functions need to increment counter</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Call back add: &quot;</span><span class="p">,</span><span class="n">method</span><span class="p">,</span><span class="n">path</span><span class="p">,</span><span class="n">cfunc</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">callregistry</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callregistry</span><span class="p">[</span><span class="n">method</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callregistry</span><span class="p">[</span><span class="n">method</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">path</span> <span class="p">:</span> <span class="n">cfunc</span> <span class="p">})</span></div>
+
+<div class="viewcode-block" id="jServe.callback"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.callback">[docs]</a>    <span class="k">def</span> <span class="nf">callback</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">jdata</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Find the callback based on method and path, the call it with jdata</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method(str): Method from URL, used as primary key in callbacks</span>
+<span class="sd">            path(str): path from URL</span>
+<span class="sd">            jdata(json):</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">status</span><span class="o">=</span><span class="mi">200</span>
+        <span class="n">counter</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">callregistry</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">callregistry</span><span class="p">[</span><span class="n">method</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">rep</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="c1"># print (&quot;rep = {} path = {}&quot;.format(rep, path), file = self.logfile)</span>
+                    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">rep</span><span class="p">,</span><span class="n">path</span><span class="p">,</span><span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+                        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;MATCH rep = </span><span class="si">{}</span><span class="s2"> path = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rep</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span> <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+                        <span class="n">path</span><span class="p">,</span> <span class="n">jdata</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">counter</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="n">rep</span><span class="p">](</span><span class="n">path</span><span class="p">,</span><span class="n">jdata</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span> <span class="n">counter</span><span class="o">=</span><span class="n">counter</span><span class="p">)</span>  <span class="c1">#return first match for now</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">counter</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">jdata</span><span class="p">,</span><span class="n">status</span><span class="p">,</span><span class="n">counter</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_callback</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">jdata</span><span class="p">,</span><span class="n">status</span><span class="p">,</span><span class="n">counter</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="jServe.run_url_thread"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.run_url_thread">[docs]</a>    <span class="k">def</span> <span class="nf">run_url_thread</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">conn</span><span class="p">,</span> <span class="n">addr</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Called from run(), process a single user request in a thread</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            conn(socket): came from accept()</span>
+<span class="sd">            addr(list): TCPIP address Information</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            sends response to Socket</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Client connected with &#39;</span> <span class="o">+</span> <span class="n">addr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">addr</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">4096</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">method</span><span class="p">,</span> <span class="n">wpath</span><span class="p">,</span> <span class="n">jdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_url</span> <span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">m1</span><span class="p">,</span> <span class="n">rjdata</span><span class="p">,</span> <span class="n">rcode</span><span class="p">,</span> <span class="n">m2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">wpath</span><span class="p">,</span> <span class="n">jdata</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">:</span><span class="si">%s</span><span class="s2"> =&gt; </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span> <span class="n">addr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="nb">str</span><span class="p">(</span><span class="n">addr</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span><span class="n">method</span><span class="p">,</span> <span class="n">wpath</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">jdata</span><span class="p">)),</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">sendall</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">http_reply</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">rjdata</span><span class="p">),</span><span class="n">rcode</span><span class="p">),</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;closing connection from: &quot;</span>  <span class="o">+</span> <span class="n">addr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">addr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">),</span> <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span> <span class="c1"># Close</span></div>
+
+<div class="viewcode-block" id="jServe.run"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Opens connection, and creates Thread object to handle requests</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Waiting for connections on port </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">),</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="c1"># We need to run a loop and create a new thread for each connection</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+          <span class="k">try</span><span class="p">:</span>
+              <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssl</span><span class="p">:</span>
+                  <span class="n">conn</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ssl</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+              <span class="k">else</span><span class="p">:</span>
+                  <span class="n">conn</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+              <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_url_thread</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">addr</span><span class="p">))</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+          <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="jServe.http_reply"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.http_reply">[docs]</a>    <span class="k">def</span> <span class="nf">http_reply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data</span><span class="p">,</span><span class="n">status</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Wraps json data in HTTP response</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (str): converted json string</span>
+<span class="sd">            status(int): Status to return see stats table below</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            HTTPD respnose string</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">stats</span><span class="o">=</span><span class="p">{</span>  <span class="mi">100</span> <span class="p">:</span> <span class="s2">&quot;Continue&quot;</span><span class="p">,</span> <span class="mi">101</span> <span class="p">:</span> <span class="s2">&quot;Switching Protocols&quot;</span><span class="p">,</span>
+                 <span class="mi">200</span> <span class="p">:</span> <span class="s2">&quot;OK&quot;</span><span class="p">,</span> <span class="mi">201</span> <span class="p">:</span> <span class="s2">&quot;Created&quot;</span><span class="p">,</span> <span class="mi">202</span> <span class="p">:</span> <span class="s2">&quot;Accepted&quot;</span><span class="p">,</span> <span class="mi">203</span> <span class="p">:</span> <span class="s2">&quot;Non-Authoritative Information&quot;</span><span class="p">,</span>
+                 <span class="mi">204</span> <span class="p">:</span> <span class="s2">&quot;No Content&quot;</span><span class="p">,</span> <span class="mi">205</span> <span class="p">:</span> <span class="s2">&quot;Reset Content&quot;</span><span class="p">,</span> <span class="mi">206</span> <span class="p">:</span> <span class="s2">&quot;Partial Content&quot;</span><span class="p">,</span>
+                 <span class="mi">300</span> <span class="p">:</span> <span class="s2">&quot;Multiple Choices&quot;</span><span class="p">,</span> <span class="mi">301</span> <span class="p">:</span> <span class="s2">&quot;Moved Permanently&quot;</span><span class="p">,</span> <span class="mi">302</span> <span class="p">:</span> <span class="s2">&quot;Found&quot;</span><span class="p">,</span>
+                 <span class="mi">303</span> <span class="p">:</span> <span class="s2">&quot;See Other&quot;</span><span class="p">,</span> <span class="mi">304</span> <span class="p">:</span> <span class="s2">&quot;Not Modified&quot;</span><span class="p">,</span> <span class="mi">307</span> <span class="p">:</span> <span class="s2">&quot;Temporary Redirect&quot;</span><span class="p">,</span> <span class="mi">308</span> <span class="p">:</span> <span class="s2">&quot;Permanent Redirect&quot;</span><span class="p">,</span>
+                 <span class="mi">400</span> <span class="p">:</span> <span class="s2">&quot;Bad Request&quot;</span><span class="p">,</span> <span class="mi">401</span> <span class="p">:</span> <span class="s2">&quot;Unauthorized&quot;</span><span class="p">,</span> <span class="mi">403</span> <span class="p">:</span> <span class="s2">&quot;Forbidden&quot;</span><span class="p">,</span> <span class="mi">404</span> <span class="p">:</span> <span class="s2">&quot;Not Found&quot;</span><span class="p">,</span>
+                 <span class="mi">405</span> <span class="p">:</span> <span class="s2">&quot;Method Not Allowed&quot;</span><span class="p">,</span> <span class="mi">406</span> <span class="p">:</span> <span class="s2">&quot;Not Acceptable&quot;</span><span class="p">,</span> <span class="mi">407</span> <span class="p">:</span> <span class="s2">&quot;Proxy Authentication Required&quot;</span><span class="p">,</span>
+                 <span class="mi">408</span> <span class="p">:</span> <span class="s2">&quot;Request Timeout&quot;</span><span class="p">,</span> <span class="mi">409</span> <span class="p">:</span> <span class="s2">&quot;Conflict&quot;</span><span class="p">,</span> <span class="mi">410</span> <span class="p">:</span> <span class="s2">&quot;Gone&quot;</span><span class="p">,</span> <span class="mi">411</span> <span class="p">:</span> <span class="s2">&quot;Length Required&quot;</span><span class="p">,</span>
+                 <span class="mi">412</span> <span class="p">:</span> <span class="s2">&quot;Precondition Failed&quot;</span><span class="p">,</span> <span class="mi">413</span> <span class="p">:</span> <span class="s2">&quot;Payload Too Large&quot;</span><span class="p">,</span> <span class="mi">414</span> <span class="p">:</span> <span class="s2">&quot;URI Too Long&quot;</span><span class="p">,</span>
+                 <span class="mi">415</span> <span class="p">:</span> <span class="s2">&quot;Unsupported Media Type&quot;</span><span class="p">,</span> <span class="mi">416</span> <span class="p">:</span> <span class="s2">&quot;Range Not Satisfiable&quot;</span><span class="p">,</span> <span class="mi">417</span> <span class="p">:</span> <span class="s2">&quot;Expectation Failed&quot;</span><span class="p">,</span>
+                 <span class="mi">418</span> <span class="p">:</span> <span class="s2">&quot;I&#39;m a teapot&quot;</span><span class="p">,</span> <span class="mi">422</span> <span class="p">:</span> <span class="s2">&quot;Unprocessable Entity&quot;</span><span class="p">,</span> <span class="mi">426</span> <span class="p">:</span> <span class="s2">&quot;Upgrade Required&quot;</span><span class="p">,</span>
+                 <span class="mi">428</span> <span class="p">:</span> <span class="s2">&quot;Precondition Required&quot;</span><span class="p">,</span> <span class="mi">429</span> <span class="p">:</span> <span class="s2">&quot;Too Many Requests&quot;</span><span class="p">,</span>
+                 <span class="mi">431</span> <span class="p">:</span> <span class="s2">&quot;Request Header Fields Too Large&quot;</span><span class="p">,</span> <span class="mi">451</span> <span class="p">:</span> <span class="s2">&quot;Unavailable For Legal Reasons&quot;</span><span class="p">,</span>
+                 <span class="mi">500</span> <span class="p">:</span> <span class="s2">&quot;Internal Server Error&quot;</span><span class="p">,</span> <span class="mi">501</span> <span class="p">:</span> <span class="s2">&quot;Not Implemented&quot;</span><span class="p">,</span> <span class="mi">502</span> <span class="p">:</span> <span class="s2">&quot;Bad Gateway&quot;</span><span class="p">,</span>
+                 <span class="mi">503</span> <span class="p">:</span> <span class="s2">&quot;Service Unavailable&quot;</span><span class="p">,</span> <span class="mi">504</span> <span class="p">:</span> <span class="s2">&quot;Gateway Timeout&quot;</span><span class="p">,</span> <span class="mi">505</span> <span class="p">:</span> <span class="s2">&quot;HTTP Version Not Supported&quot;</span><span class="p">,</span>
+                 <span class="mi">511</span> <span class="p">:</span> <span class="s2">&quot;Network Authentication Required&quot;</span> <span class="p">}</span>
+
+        <span class="n">resp</span> <span class="o">=</span> <span class="s2">&quot;HTTP/1.1 </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">status</span><span class="p">,</span><span class="n">stats</span><span class="p">[</span><span class="n">status</span><span class="p">])</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="s2">&quot;Date: </span><span class="si">{}</span><span class="s2"> GMT</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%a, </span><span class="si">%d</span><span class="s2"> %b %Y %H:%M:%S&quot;</span><span class="p">))</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="s2">&quot;Server: jServ.py</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="s2">&quot;Cache-Control: no-cache</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="s2">&quot;Content-Length: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="s2">&quot;Content-Type: application/json; charset=utf-8</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="s2">&quot;Connection: Closed</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="n">resp</span> <span class="o">+=</span> <span class="n">data</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;Respone:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">resp</span><span class="p">,</span><span class="n">file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">resp</span></div>
+
+
+<div class="viewcode-block" id="jServe.process_url"><a class="viewcode-back" href="../rst/jServe.html#jServe.jServe.process_url">[docs]</a>    <span class="k">def</span> <span class="nf">process_url</span> <span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Break up URL string recieved in method, path, json</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            args(str): URL string</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            method(str), path(str), json(json): tupple with data to be used for callbacks</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">def</span> <span class="nf">is_number</span><span class="p">(</span><span class="n">j</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">j</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">join_escaped</span><span class="p">(</span><span class="n">lst</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;&quot;&#39;</span><span class="p">):</span>
+            <span class="n">retstr</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="nb">str</span><span class="o">.</span><span class="n">maketrans</span><span class="p">({</span><span class="n">sep</span><span class="p">:</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">92</span><span class="p">)</span><span class="o">+</span><span class="n">sep</span><span class="p">})</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lst</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&quot;&#39;</span> <span class="ow">and</span> <span class="n">k</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&#39;&quot;</span> <span class="ow">and</span> <span class="n">k</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">sep</span> <span class="ow">and</span> <span class="n">k</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">sep</span><span class="p">)</span> <span class="p">:</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">tbl</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="s1">&#39;:&#39;</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">==</span> <span class="s1">&#39;,&#39;</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">==</span> <span class="s1">&#39;}&#39;</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">==</span> <span class="s1">&#39;{&#39;</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;[&quot;</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span> <span class="ow">or</span> <span class="n">is_number</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="n">k</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="n">sep</span> <span class="o">+</span> <span class="n">k</span> <span class="o">+</span> <span class="n">sep</span>
+                <span class="n">retstr</span> <span class="o">=</span>  <span class="n">retstr</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">j</span>
+            <span class="k">return</span> <span class="n">retstr</span>
+
+        <span class="n">urlst</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">,</span><span class="s2">&quot; [ &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">,</span><span class="s2">&quot; ] &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">,</span><span class="s2">&quot; { &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">,</span><span class="s2">&quot; } &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span><span class="s2">&quot; : &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span><span class="s2">&quot; , &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">urlst</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">wpath</span> <span class="o">=</span> <span class="n">urlst</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="s2">&quot;method = &quot;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="s2">&quot; wpath = &quot;</span><span class="p">,</span> <span class="n">wpath</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;GET&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">,</span><span class="s2">&quot; : &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;&quot;</span><span class="p">,</span><span class="s2">&quot; , &quot;</span><span class="p">)</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39; : true &#39;</span>
+                    <span class="n">params</span> <span class="o">=</span> <span class="n">params</span> <span class="o">+</span> <span class="n">i</span> <span class="o">+</span> <span class="s1">&#39; , &#39;</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
+                <span class="c1"># print (params, file = self.logfile)</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+                <span class="n">ags</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">query</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ags</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">path</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">urlst</span> <span class="o">=</span> <span class="n">ags</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">,</span><span class="s2">&quot; { &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">,</span><span class="s2">&quot; } &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span><span class="s2">&quot; : &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span><span class="s2">&quot; , &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="n">urlst</span><span class="p">[</span><span class="n">urlst</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;{&quot;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">urlst</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">jstr</span> <span class="o">=</span> <span class="s2">&quot;{ &quot;</span> <span class="o">+</span> <span class="n">join_escaped</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; }&quot;</span>
+        <span class="nb">print</span> <span class="p">(</span><span class="n">jstr</span><span class="p">,</span><span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">method</span><span class="p">,</span><span class="n">wpath</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jstr</span><span class="p">))</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39; Below is an example and not called if imported as module &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">my_call</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">jdata</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">counter</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="c1"># print (&quot;my_call: \n\t===&gt;&gt;&gt; &quot;,jdata)</span>
+        <span class="n">jdata</span><span class="p">[</span><span class="s1">&#39;more&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;testing&#39;</span>
+        <span class="n">jdata</span><span class="p">[</span><span class="s1">&#39;counter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">counter</span>
+        <span class="c1"># print (&quot;\n\t\t===&gt;&gt;&gt; &quot;,jdata)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">jdata</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">counter</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">myjs</span> <span class="o">=</span> <span class="n">jServe</span><span class="p">()</span>
+    <span class="n">myjs</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="s2">&quot;GET&quot;</span><span class="p">,</span><span class="s2">&quot;/tes.*&quot;</span><span class="p">,</span><span class="n">my_call</span><span class="p">)</span>
+    <span class="n">myjs</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="s2">&quot;/te.*&quot;</span><span class="p">,</span><span class="n">my_call</span><span class="p">)</span>
+    <span class="n">myjs</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="s2">&quot;/t.*&quot;</span><span class="p">,</span><span class="n">my_call</span><span class="p">)</span>
+    <span class="n">myjs</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span><span class="s2">&quot;PUT&quot;</span><span class="p">,</span><span class="s2">&quot;/t.*&quot;</span><span class="p">,</span><span class="n">my_call</span><span class="p">)</span>
+    <span class="c1"># print (myjs.callregistry)</span>
+    <span class="n">myjs</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Tom Papadopoulos.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

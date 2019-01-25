@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>jServe module &mdash; jServe 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="jServe 1 documentation" href="../index.html"/>
+        <link rel="up" title="src" href="modules.html"/>
+        <link rel="prev" title="src" href="modules.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> jServe
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">src</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">jServe module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">jServe</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="modules.html">src</a> &raquo;</li>
+        
+      <li>jServe module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/rst/jServe.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-jServe">
+<span id="jserve-module"></span><h1>jServe module<a class="headerlink" href="#module-jServe" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="jServe.jServe">
+<em class="property">class </em><code class="descclassname">jServe.</code><code class="descname">jServe</code><span class="sig-paren">(</span><em>callbacks={}</em>, <em>port=9699</em>, <em>host='RKJMBL0191'</em>, <em>certfile=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/threading.html#threading.Thread" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">threading.Thread</span></code></a></p>
+<p>Process a json request from client, route to callback function, return json to client</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.7)"><em>dict</em></a>) – Dictionary to use as callback registry <em>see add_callback()</em></li>
+<li><strong>port</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Port number to use</li>
+<li><strong>host</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Hostname for server</li>
+<li><strong>certfile</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – File to use for SSL <em>(if * **None*</em> <em>SSL will not be used)</em></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt>
+<code class="descname">output = 'json | xml'</code></dt>
+<dd><p>default is json, type of output to return</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.add_callback">
+<code class="descname">add_callback</code><span class="sig-paren">(</span><em>method</em>, <em>path</em>, <em>cfunc</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.add_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.add_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register callback method, function should accept json object as data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Method in URL POST, GET, PUT, etc..</li>
+<li><strong>path</strong> (<em>re</em>) – Path in URL after host ‘/.*’, regular expression</li>
+<li><strong>cfunc</strong> (<em>function</em>) – call back function refernce pointer (see default_callback() for details)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Note user defined functions need to increment counter</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.callback">
+<code class="descname">callback</code><span class="sig-paren">(</span><em>method</em>, <em>path</em>, <em>jdata</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the callback based on method and path, the call it with jdata</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – Method from URL, used as primary key in callbacks</li>
+<li><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – path from URL</li>
+<li><strong>jdata</strong> (<em>json</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.default_callback">
+<code class="descname">default_callback</code><span class="sig-paren">(</span><em>path</em>, <em>jdata</em>, <em>status=400</em>, <em>counter=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.default_callback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.default_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call back to execute if one is not foundself.</p>
+<p><strong>Model callbacks on this function, counter should be incremented</strong></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – path in calling URL</li>
+<li><strong>jdata</strong> (<em>json</em>) – jquery data to process (required)</li>
+<li><strong>status</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – last status</li>
+<li><strong>counter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – How many times method path did a call back</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Returns tupple with path, json object, status, and counter</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">path(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>),json(json), status(<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>), counter(<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)">int</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.http_reply">
+<code class="descname">http_reply</code><span class="sig-paren">(</span><em>data</em>, <em>status=200</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.http_reply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.http_reply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps json data in HTTP response</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – converted json string</li>
+<li><strong>status</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – Status to return see stats table below</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">HTTPD respnose string</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.process_url">
+<code class="descname">process_url</code><span class="sig-paren">(</span><em>args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.process_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.process_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Break up URL string recieved in method, path, json</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a>) – URL string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tupple with data to be used for callbacks</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">method(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>), path(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.7)">str</a>), json(json)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens connection, and creates Thread object to handle requests</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.run_url_thread">
+<code class="descname">run_url_thread</code><span class="sig-paren">(</span><em>conn</em>, <em>addr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.run_url_thread"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.run_url_thread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called from run(), process a single user request in a thread</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>conn</strong> (<em>socket</em>) – came from accept()</li>
+<li><strong>addr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.7)"><em>list</em></a>) – TCPIP address Information</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">sends response to Socket</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.sig_exit">
+<code class="descname">sig_exit</code><span class="sig-paren">(</span><em>signal</em>, <em>fname</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.sig_exit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.sig_exit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receive signal to exit from OS</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>signal</strong> (<em>signal</em>) – signal received</li>
+<li><strong>fname</strong> (<em>file</em>) – File name</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Exits program</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="jServe.jServe.start">
+<code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jServe.html#jServe.start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jServe.jServe.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>start() : will start the server, will not execute any other commands afterwards</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>None</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="modules.html" class="btn btn-neutral" title="src" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Tom Papadopoulos.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

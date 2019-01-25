@@ -1,0 +1,7 @@
+jServe module
+=============
+
+.. automodule:: jServe
+    :members:
+    :undoc-members:
+    :show-inheritance:
